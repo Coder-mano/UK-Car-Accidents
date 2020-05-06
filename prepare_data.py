@@ -9,6 +9,7 @@ from pyspark.sql.functions import isnan, count, avg, mean
 import numpy
 import csv
 
+
 def loadData(spark):
 
     # CSV loading
@@ -18,13 +19,10 @@ def loadData(spark):
 
     df_casualties = df_casualties.withColumnRenamed("Vehicle_Reference", "Vehicle_Reference_Casualty")
 
-
     data = df_accidents.join(df_casualties, "Accident_Index").drop(df_casualties.Accident_Index)
     data = data.join(df_vehicles, "Accident_Index").drop(df_vehicles.Accident_Index)
 
     return data
-
-
 
 
 def preprocess(data):
@@ -62,16 +60,19 @@ def preprocess(data):
     # main attr binarization
     data = data.withColumn("Accident_Severity", when(data["Accident_Severity"] == 1, 0).otherwise(1))
 
-    # :TODO takto by to dakto mohol spravit ja nestiham ;)
-    #data = data.replace('6', 'snow', 'wheather_condition')
-    data = data.replace('0', 'Fatal', 'Accident_Severity')
-    data = data.replace('1', 'NonFatal', 'Accident_Severity')
+    data = data.withColumn('Weather_Conditions', data['Weather_Conditions'].cast(StringType()))
+    data = data.withColumn('Accident_Severity', data['Accident_Severity'].cast(StringType()))
+
+    weather = {"1": "fine", "2": "rain", "3": "snow", "4": "fine_wind", "5": "rain_wind", "6": "snow_wind", "7": "fog",
+               "8": "other", "9": "unknown"}
+    data = data.na.replace(weather, 1)
+    data = data.na.replace(["0", "1"], ['Fatal', 'NonFatal'], 'Accident_Severity')
 
     # fast way
     data = toNominal(data)
 
     # 'nominal' test
-    data.printSchema()
+    #data.printSchema()
 
 
     # temp tests
@@ -82,7 +83,7 @@ def preprocess(data):
     # nul test ([tested]commented - time consuming)
     #data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
 
-    print data.count()
+    return data
 
 
 def filterNa(data):
@@ -106,7 +107,6 @@ def filterNa(data):
                      'Sex_of_Casualty', 'Age_of_Casualty', 'Age_Band_of_Casualty', 'Casualty_Home_Area_Type',
                      'LSOA_of_Accident_Location')
     return data
-
 
 
 def toNominal(data):
@@ -166,27 +166,28 @@ def toNominal(data):
 def age_band_count(age):
     if age < 6:
         a_band = 1
-    elif age > 5 and age < 11:
+    elif 5 < age < 11:
         a_band = 2
-    elif age >10 and age < 16:
+    elif 10 < age < 16:
         a_band = 3
-    elif age > 15 and age < 21:
+    elif 15 < age < 21:
         a_band = 4
-    elif age > 20 and age < 26:
+    elif 20 < age < 26:
         a_band = 5
-    elif age > 25 and age < 36:
+    elif 25 < age < 36:
         a_band = 6
-    elif age > 35 and age < 46:
+    elif 35 < age < 46:
         a_band = 7
-    elif age > 45 and age < 56:
+    elif 45 < age < 56:
         a_band = 8
-    elif age > 55 and age < 66:
+    elif 55 < age < 66:
         a_band = 9
-    elif age > 65 and age < 76:
+    elif 65 < age < 76:
         a_band = 10
     else:
         a_band = 11
     return a_band
+
 
 def to_none(col_name):
     return when(col(col_name) != "-1", col(col_name)).otherwise(None)
