@@ -6,18 +6,16 @@ from pyspark.sql.functions import when, col, sum
 from pyspark.ml.feature import VectorAssembler
 import pyspark.sql.functions as sf
 from pyspark.sql.functions import isnan, count, avg, mean
+from pyspark.ml.feature import StringIndexer
 import numpy
 import csv
 
-
 def loadData(spark):
     # CSV loading
-    df_accidents = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load(
-        "./raw_data/Accidents.csv")
-    df_casualties = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load(
-        "./raw_data/Casualties.csv")
-    df_vehicles = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load(
-        "./raw_data/Vehicles.csv")
+
+    df_accidents = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Accidents.csv")
+    df_casualties = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Casualties.csv")
+    df_vehicles = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Vehicles.csv")
 
     df_casualties = df_casualties.withColumnRenamed("Vehicle_Reference", "Vehicle_Reference_Casualty")
 
@@ -62,11 +60,31 @@ def preprocess(data):
     # main attr binarization
     data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
 
-    # fast way
-    data = toNominal(data)
+    nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_(District)', 'Local_Authority_(Highway)',
+                      '1st_Road_Class', 'Road_Type', 'Junction_Detail', 'Junction_Control',
+                      'Pedestrian_Crossing-Human_Control',
+                      'Pedestrian_Crossing-Physical_Facilities', 'Light_Conditions', 'Road_Surface_Conditions',
+                      'Special_Conditions_at_Site',
+                      'Carriageway_Hazards', 'Urban_or_Rural_Area', 'Did_Police_Officer_Attend_Scene_of_Accident',
+                      'Vehicle_Type',
+                      'Towing_and_Articulation', 'Vehicle_Manoeuvre', 'Vehicle_Location-Restricted_Lane',
+                      'Junction_Location',
+                      'Skidding_and_Overturning', 'Hit_Object_in_Carriageway', 'Vehicle_Leaving_Carriageway',
+                      'Hit_Object_off_Carriageway',
+                      '1st_Point_of_Impact', 'Sex_of_Driver', 'Casualty_Class', 'Casualty_Severity',
+                      'Pedestrian_Location',
+                      'Pedestrian_Movement', 'Car_Passenger', 'Bus_or_Coach_Passenger',
+                      'Pedestrian_Road_Maintenance_Worker',
+                      'Casualty_Type', 'Weather_Conditions', 'Age_Band_of_Driver', 'Accident_Severity']
 
-    # 'nominal' test
-    # data.printSchema()
+    data = toNominal(data, nominalColumns)
+
+    # reduce -> random sampling | workaround for StringIndexer OOF
+    data = data.sample(False, 0.9999)
+    # reduce -> stratified sampling
+    #data.sampleBy("Accident_Severity", 0.999)
+
+    indexedData = getIndexedDataFrame(data, nominalColumns)
 
     # temp tests
     # data.select("Vehicle_Propulsion_Code").distinct().show()
@@ -76,7 +94,14 @@ def preprocess(data):
     # nul test ([tested]commented - time consuming)
     # data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
 
-    return data
+    return data, indexedData
+
+def getIndexedDataFrame(data, columns):
+
+   for column in columns:
+        data = StringIndexer(inputCol=column, outputCol=column+"_index").fit(data).transform(data).drop(column).withColumnRenamed(column+"_index",column)
+
+   return data
 
 
 def filterNa(data):
@@ -102,51 +127,10 @@ def filterNa(data):
     return data
 
 
-def toNominal(data):
-    data = data.withColumn('Police_Force', data['Police_Force'].cast(StringType()))
-    data = data.withColumn('Day_of_Week', data['Day_of_Week'].cast(StringType()))
-    data = data.withColumn('Local_Authority_(District)', data['Local_Authority_(District)'].cast(StringType()))
-    data = data.withColumn('Local_Authority_(Highway)', data['Local_Authority_(Highway)'].cast(StringType()))
-    data = data.withColumn('1st_Road_Class', data['1st_Road_Class'].cast(StringType()))
-    data = data.withColumn('Road_Type', data['Road_Type'].cast(StringType()))
-    data = data.withColumn('Junction_Detail', data['Junction_Detail'].cast(StringType()))
-    data = data.withColumn('Junction_Control', data['Junction_Control'].cast(StringType()))
-    data = data.withColumn('Pedestrian_Crossing-Human_Control',
-                           data['Pedestrian_Crossing-Human_Control'].cast(StringType()))
-    data = data.withColumn('Pedestrian_Crossing-Physical_Facilities',
-                           data['Pedestrian_Crossing-Physical_Facilities'].cast(StringType()))
-    data = data.withColumn('Light_Conditions', data['Light_Conditions'].cast(StringType()))
-    data = data.withColumn('Road_Surface_Conditions', data['Road_Surface_Conditions'].cast(StringType()))
-    data = data.withColumn('Special_Conditions_at_Site', data['Special_Conditions_at_Site'].cast(StringType()))
-    data = data.withColumn('Carriageway_Hazards', data['Carriageway_Hazards'].cast(StringType()))
-    data = data.withColumn('Urban_or_Rural_Area', data['Urban_or_Rural_Area'].cast(StringType()))
-    data = data.withColumn('Did_Police_Officer_Attend_Scene_of_Accident',
-                           data['Did_Police_Officer_Attend_Scene_of_Accident'].cast(StringType()))
-    data = data.withColumn('Vehicle_Type', data['Vehicle_Type'].cast(StringType()))
-    data = data.withColumn('Towing_and_Articulation', data['Towing_and_Articulation'].cast(StringType()))
-    data = data.withColumn('Vehicle_Manoeuvre', data['Vehicle_Manoeuvre'].cast(StringType()))
-    data = data.withColumn('Vehicle_Location-Restricted_Lane',
-                           data['Vehicle_Location-Restricted_Lane'].cast(StringType()))
-    data = data.withColumn('Junction_Location', data['Junction_Location'].cast(StringType()))
-    data = data.withColumn('Skidding_and_Overturning', data['Skidding_and_Overturning'].cast(StringType()))
-    data = data.withColumn('Hit_Object_in_Carriageway', data['Hit_Object_in_Carriageway'].cast(StringType()))
-    data = data.withColumn('Vehicle_Leaving_Carriageway', data['Vehicle_Leaving_Carriageway'].cast(StringType()))
-    data = data.withColumn('Hit_Object_off_Carriageway', data['Hit_Object_off_Carriageway'].cast(StringType()))
-    data = data.withColumn('1st_Point_of_Impact', data['1st_Point_of_Impact'].cast(StringType()))
-    #data = data.withColumn('Journey_Purpose_of_Driver', data['Journey_Purpose_of_Driver'].cast(StringType()))
-    data = data.withColumn('Sex_of_Driver', data['Sex_of_Driver'].cast(StringType()))
-    data = data.withColumn('Casualty_Class', data['Casualty_Class'].cast(StringType()))
-    data = data.withColumn('Casualty_Severity', data['Casualty_Severity'].cast(StringType()))
-    data = data.withColumn('Pedestrian_Location', data['Pedestrian_Location'].cast(StringType()))
-    data = data.withColumn('Pedestrian_Movement', data['Pedestrian_Movement'].cast(StringType()))
-    data = data.withColumn('Car_Passenger', data['Car_Passenger'].cast(StringType()))
-    data = data.withColumn('Bus_or_Coach_Passenger', data['Bus_or_Coach_Passenger'].cast(StringType()))
-    data = data.withColumn('Pedestrian_Road_Maintenance_Worker',
-                           data['Pedestrian_Road_Maintenance_Worker'].cast(StringType()))
-    data = data.withColumn('Casualty_Type', data['Casualty_Type'].cast(StringType()))
-    data = data.withColumn('Weather_Conditions', data['Weather_Conditions'].cast(StringType()))
-    data = data.withColumn('Accident_Severity', data['Accident_Severity'].cast(StringType()))
-    data = data.withColumn('Age_Band_of_Driver', data['Age_Band_of_Driver'].cast(StringType()))
+def toNominal(data, columns):
+
+    for column in columns:
+        data = data.withColumn(column, data[column].cast(StringType()))
 
     return data
 
