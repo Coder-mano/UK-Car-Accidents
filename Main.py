@@ -3,6 +3,7 @@ from pyspark.sql import SparkSession
 import time
 from pyspark.ml.feature import VectorAssembler
 import visualization
+import clustering
 
 if __name__ == "__main__":
 
@@ -20,6 +21,9 @@ if __name__ == "__main__":
     # data = prepare_data.preprocess(data, indexed=False)
     # visualization.make_barcharts(data, save_pdf=True)
     # visualization.make_histogram(data)
+
+    # Clustering
+    clustering.kmeans_clustering(data)
 
     # feature vector prep
     col_names = indexedData.schema.names

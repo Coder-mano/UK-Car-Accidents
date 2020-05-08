@@ -48,6 +48,10 @@ def preprocess(data, indexed=False):
 
     data = filterNa(data)
 
+    # Rename some fuckers
+    data = data.withColumnRenamed("Local_Authority_(District)", "Local_Authority_District")
+    data = data.withColumnRenamed("Local_Authority_(Highway)", "Local_Authority_Highway")
+
     # other values replacement
     meanAge = data.filter(data['Age_of_Driver'].isNotNull()).agg(avg(col('Age_of_Driver'))).first()[0]
 
@@ -61,7 +65,7 @@ def preprocess(data, indexed=False):
     # main attr binarization
     data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
 
-    nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_(District)', 'Local_Authority_(Highway)',
+    nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_District', 'Local_Authority_Highway',
                       '1st_Road_Class', 'Road_Type', 'Junction_Detail', 'Junction_Control',
                       'Pedestrian_Crossing-Human_Control',
                       'Pedestrian_Crossing-Physical_Facilities', 'Light_Conditions', 'Road_Surface_Conditions',
