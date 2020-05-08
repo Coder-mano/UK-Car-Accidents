@@ -10,6 +10,7 @@ from pyspark.ml.feature import StringIndexer
 import numpy
 import csv
 
+
 def loadData(spark):
     # CSV loading
 
@@ -25,7 +26,7 @@ def loadData(spark):
     return data
 
 
-def preprocess(data):
+def preprocess(data, indexed=False):
     # time & date correction
     data = data.withColumn("Date", sf.to_date("Date", format="dd/MM/yyyy"))  # string to date
     data = data.withColumn("Date", sf.concat(sf.col('Date'), sf.lit(' '), sf.col('Time')))  # concat
@@ -83,9 +84,11 @@ def preprocess(data):
     data = data.sample(False, 0.9999)
     # reduce -> stratified sampling
     #data.sampleBy("Accident_Severity", 0.999)
-
-    indexedData = getIndexedDataFrame(data, nominalColumns)
-
+    if indexed:
+        print "Indexujem"
+        indexedData = getIndexedDataFrame(data, nominalColumns)
+        return data, indexedData
+    else:
     # temp tests
     # data.select("Vehicle_Propulsion_Code").distinct().show()
     # print data.filter(data["Accident_Severity"] == 1).count()
@@ -94,7 +97,8 @@ def preprocess(data):
     # nul test ([tested]commented - time consuming)
     # data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
 
-    return data, indexedData
+        return data
+
 
 def getIndexedDataFrame(data, columns):
 
@@ -176,7 +180,8 @@ def number_to_text(data):
     road_class2 = {"0": "not-junction", "1": "motorway", "2": "A(M)", "3": "A", "4": "B", "5": "C", "6": "unclassified"}
     road_type = {"1": "roundabout", "2": "one-way-street", "3": "dual-carriageway", "6": "single-carriageway",
                  "7": "slip-road", "9": "unknown", "12": "one-way/slip-road"}
-    light = {"1": "daylight", "4": "darkness-lit", "5": "darkness-unlit", "6": "darkness-unknown"}
+    light = {"1": "daylight", "4": "darkness-lit", "5": "darkness-unlit", "6": "darkness-no-light",
+             "7": "darkness-unknown"}
     junction = {"0": "not-junction", "1": "roundabout", "2": "mini-roundabout", "3": "t/staggered-junction",
                 "5": "slip-road", "6": "crossroads", "7": "more-than-4-arms", "8": "private-drive", "9": "other"}
     junction_control = {"0": "not-junction", "1": "authorised-person", "2": "auto-traffic-signal", "3": "stop-sign",
@@ -242,7 +247,7 @@ def number_to_text(data):
                      "4": "seated-passenger"}
     maintenance_worker = {"0": "no", "1": "yes", "2": "unknown"}
     casualty_type = {"0": "pedestran", "1": "cyclist", "2": "motorcycler", "3": "motorcycler", "4": "motorcycler",
-                     "5": "motorcycler", "8": "taxi-occupant", "9": "car-occupant", " 10": "minibus-occupant",
+                     "5": "motorcycler", "8": "taxi-occupant", "9": "car-occupant", "10": "minibus-occupant",
                      "11": "bus-occupant", "16": "horse-rider", "17": "agricultural-occupant", "18": "tram-occupant",
                      "19": "van-occupant", "20": "goods-occupant", "21": "goods-occupant", "22": "scooter-rider",
                      "23": "motocycler", "90": "other-occupant", "97": "motorcycler", "98": "goods-occupant"}
@@ -282,10 +287,5 @@ def number_to_text(data):
     data = data.replace(to_replace=bus_passenger, subset="Bus_or_Coach_Passenger")
     data = data.replace(to_replace=maintenance_worker, subset="Pedestrian_Road_Maintenance_Worker")
     data = data.replace(to_replace=casualty_type, subset="Casualty_Type")
-
     return data
 
-
-def make_histograms(data):
-    # TODO create histograms for nominal atritubtes
-    return None
