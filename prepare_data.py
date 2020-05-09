@@ -14,9 +14,9 @@ import csv
 def loadData(spark):
     # CSV loading
 
-    df_accidents = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Accidents.csv")
-    df_casualties = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Casualties.csv")
-    df_vehicles = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("./raw_data/Vehicles.csv")
+    df_accidents = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Accidents.csv")
+    df_casualties = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Casualties.csv")
+    df_vehicles = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Vehicles.csv")
 
     df_casualties = df_casualties.withColumnRenamed("Vehicle_Reference", "Vehicle_Reference_Casualty")
 
@@ -26,7 +26,7 @@ def loadData(spark):
     return data
 
 
-def preprocess(data, indexed=False):
+def preprocess(data, indexed=True):
     # time & date correction
     data = data.withColumn("Date", sf.to_date("Date", format="dd/MM/yyyy"))  # string to date
     data = data.withColumn("Date", sf.concat(sf.col('Date'), sf.lit(' '), sf.col('Time')))  # concat
@@ -48,7 +48,7 @@ def preprocess(data, indexed=False):
 
     data = filterNa(data)
 
-    # Rename some fuckers
+    # Rename some cols
     data = data.withColumnRenamed("Local_Authority_(District)", "Local_Authority_District")
     data = data.withColumnRenamed("Local_Authority_(Highway)", "Local_Authority_Highway")
 
@@ -61,9 +61,6 @@ def preprocess(data, indexed=False):
               'Junction_Control': 0}
 
     data = data.fillna(value=values)
-
-    # main attr binarization
-    data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
 
     nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_District', 'Local_Authority_Highway',
                       '1st_Road_Class', 'Road_Type', 'Junction_Detail', 'Junction_Control',
@@ -84,24 +81,33 @@ def preprocess(data, indexed=False):
 
     data = toNominal(data, nominalColumns)
 
-    # reduce -> random sampling | workaround for StringIndexer OOF
-    data = data.sample(False, 0.9999)
     # reduce -> stratified sampling
-    #data.sampleBy("Accident_Severity", 0.999)
+    fractions = {'1': 1, '2': 0.05, '3': 0.05}
+    data = data.sampleBy('accident_severity', fractions, seed=1234)
+
+    # main attr binarization
+    data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
+
+
     if indexed:
-        print "Indexujem"
+        print "Indexing..."
+        nominalColumns.append("Accident_Severity_Binary")
         indexedData = getIndexedDataFrame(data, nominalColumns)
+
+        indexedData = indexedData.drop('Accident_Severity', 'Accident_Index','Casualty_Reference','Vehicle_Reference_Casualty',
+                                       'Vehicle_Reference','1st_Road_Number')
         return data, indexedData
     else:
-    # temp tests
-    # data.select("Vehicle_Propulsion_Code").distinct().show()
-    # print data.filter(data["Accident_Severity"] == 1).count()
-    # print data.filter(data["Accident_Severity"] == 0).count()
 
-    # nul test ([tested]commented - time consuming)
-    # data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
+        # temp tests
+        # data.select("Vehicle_Propulsion_Code").distinct().show()
+        print data.filter(data["Accident_Severity_Binary"] == 1).count()
+        print data.filter(data["Accident_Severity_Binary"] == 0).count()
 
-        return data
+        # nul test ([tested]commented - time consuming)
+        # data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
+
+        return data, indexedData
 
 
 def getIndexedDataFrame(data, columns):
