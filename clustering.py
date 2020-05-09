@@ -1,22 +1,19 @@
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.feature import VectorAssembler
-from pyspark.sql import SparkSession
 import anomaly
 
-spark = SparkSession.builder.appName("TSVD").getOrCreate()
+numeric_cols = ["1st_Road_Number", "Number_of_Vehicles", "Number_of_Casualties", "Speed_limit", "Age_of_Driver"]
+
 
 def kmeans_clustering(data):
-    numeric_cols = ["1st_Road_Number", "Number_of_Vehicles", "Number_of_Casualties", "Longitude", "Latitude",
-                    "Speed_limit", "Age_of_Driver"]
-
-    #data = spark.read.parquet("data.parquet")
+    print "K-Means Clustering"
     data = data.select(numeric_cols)
     vecAssembler = VectorAssembler(inputCols=numeric_cols, outputCol="features").transform(data)
     data_features = vecAssembler.select("features")
 
     # Kmeans model
-    KMeans_model = KMeans(featuresCol="features", k=10, maxIter=100, seed=1234)
-    model = KMeans_model.fit(data_features)
+    kmeans_model = KMeans(featuresCol="features", k=10, maxIter=100, seed=1234)
+    model = kmeans_model.fit(data_features)
     clusters = model.transform(data_features)
     clusters.show()
 

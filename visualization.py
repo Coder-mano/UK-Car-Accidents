@@ -1,5 +1,5 @@
 import prepare_data
-from pyspark_dist_explore import Histogram, hist, distplot, pandas_histogram
+from pyspark_dist_explore import hist
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import pyspark.sql.functions as sf
@@ -21,6 +21,7 @@ cols_to_select = ["Accident_Severity", "Weather_Conditions", "Day_of_Week", "1st
 
 
 def make_barcharts(data, save_pdf=False):
+    print "Making BarCharts"
     data = data.select(cols_to_select)
     data = prepare_data.number_to_text(data)
     attributes = data.schema.names
