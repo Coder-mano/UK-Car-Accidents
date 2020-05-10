@@ -1,0 +1,3 @@
+summary,Location_Easting_OSGR,Age_of_Driver,Location_Northing_OSGR,Longitude,Latitude,Number_of_Vehicles,Number_of_Casualties,1st_Road_Number,Speed_limit
+min,64950,-1,10290,-7.516225,49.912941,1,1,-1,10
+max,655540,100,1208800,1.76201,60.757544,67,93,9999,70

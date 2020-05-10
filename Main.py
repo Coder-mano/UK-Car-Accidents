@@ -6,6 +6,7 @@ import time
 from pyspark.ml.feature import VectorAssembler
 #import visualization
 import clustering
+import statistics
 
 if __name__ == "__main__":
 
@@ -20,6 +21,13 @@ if __name__ == "__main__":
     # data = prepare_data.preprocess(data, indexed=False)
     # visualization.make_barcharts(data, save_pdf=True)
     # visualization.make_histogram(data)
+
+    # Basic Statistics
+    statistics.basic_statistics(data, False)
+    statistics.corr_statistics(data, False)
+    statistics.cov_statistics(data, False)
+    statistics.corr_matrix_pearson(spark, data, False)
+
 
     # Correlations
     col_names = indexedData.schema.names
