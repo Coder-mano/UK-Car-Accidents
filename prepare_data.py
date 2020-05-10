@@ -1,14 +1,8 @@
-from pyspark import SparkContext
-from pyspark.sql import Row
 from pyspark.sql.types import *
-from pyspark.sql.functions import unix_timestamp, to_date, when
 from pyspark.sql.functions import when, col, sum
-from pyspark.ml.feature import VectorAssembler
 import pyspark.sql.functions as sf
 from pyspark.sql.functions import isnan, count, avg, mean
 from pyspark.ml.feature import StringIndexer
-import numpy
-import csv
 
 
 def loadData(spark):
@@ -26,7 +20,7 @@ def loadData(spark):
     return data
 
 
-def preprocess(data, indexed=True):
+def preprocess(data):
     # time & date correction
     data = data.withColumn("Date", sf.to_date("Date", format="dd/MM/yyyy"))  # string to date
     data = data.withColumn("Date", sf.concat(sf.col('Date'), sf.lit(' '), sf.col('Time')))  # concat
@@ -45,7 +39,6 @@ def preprocess(data, indexed=True):
     update_col = (when((col('Junction_Control').isNull()) & (col('Junction_Location') == 0), 0)
                   .otherwise(col('Junction_Control')))
     data = data.withColumn('Junction_Control', update_col)
-
     data = filterNa(data)
 
     # Rename some cols
@@ -54,12 +47,10 @@ def preprocess(data, indexed=True):
 
     # other values replacement
     meanAge = data.filter(data['Age_of_Driver'].isNotNull()).agg(avg(col('Age_of_Driver'))).first()[0]
-
     values = {'Weather_Conditions': 9,  'Sex_of_Driver': 3,
               'Age_of_Driver': meanAge, 'Age_Band_of_Driver': age_band_count(meanAge),
               'Pedestrian_Location': 10, 'Pedestrian_Movement': 9, 'Pedestrian_Road_Maintenance_Worker': 2,
               'Junction_Control': 0}
-
     data = data.fillna(value=values)
 
     nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_District', 'Local_Authority_Highway',
@@ -83,31 +74,16 @@ def preprocess(data, indexed=True):
 
     # reduce -> stratified sampling
     fractions = {'1': 1, '2': 0.05, '3': 0.05}
-    data = data.sampleBy('accident_severity', fractions, seed=1234)
+    data = data.sampleBy('Accident_Severity', fractions, seed=1234)
 
     # main attr binarization
     data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
-
-
-    if indexed:
-        print "Indexing..."
-        nominalColumns.append("Accident_Severity_Binary")
-        indexedData = getIndexedDataFrame(data, nominalColumns)
-
-        indexedData = indexedData.drop('Accident_Severity', 'Accident_Index','Casualty_Reference','Vehicle_Reference_Casualty',
-                                       'Vehicle_Reference','1st_Road_Number','Location_Northing_OSGR','Location_Easting_OSGR','Latitude','Longitude')
-        return data, indexedData
-    else:
-
-        # temp tests
-        # data.select("Vehicle_Propulsion_Code").distinct().show()
-        print data.filter(data["Accident_Severity_Binary"] == 1).count()
-        print data.filter(data["Accident_Severity_Binary"] == 0).count()
-
-        # nul test ([tested]commented - time consuming)
-        # data.select([count(when(isnan(c) | col(c).isNull(), c)).alias(c) for c in data.columns]).show()
-
-        return data, indexedData
+    nominalColumns.append("Accident_Severity_Binary")
+    indexedData = getIndexedDataFrame(data, nominalColumns)
+    indexedData = indexedData.drop('Accident_Severity', 'Accident_Index','Casualty_Reference','Vehicle_Reference_Casualty',
+                                    'Vehicle_Reference','1st_Road_Number',
+                                   'Location_Northing_OSGR','Location_Easting_OSGR','Latitude','Longitude')
+    return data, indexedData
 
 
 def getIndexedDataFrame(data, columns):

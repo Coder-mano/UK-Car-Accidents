@@ -2,15 +2,17 @@ from pyspark.ml.clustering import KMeans
 from pyspark.ml.feature import VectorAssembler
 import anomaly
 
-numeric_cols = ["1st_Road_Number", "Number_of_Vehicles", "Number_of_Casualties", "Speed_limit", "Age_of_Driver"]
+numeric_cols = ["Number_of_Vehicles", "Number_of_Casualties", "Speed_limit", "Age_of_Driver"]
 
 
-def kmeans_clustering(data):
+def kmeans_clustering(data, only_numeric=False):
     print "K-Means Clustering"
-    data = data.select(numeric_cols)
-    vecAssembler = VectorAssembler(inputCols=numeric_cols, outputCol="features").transform(data)
-    data_features = vecAssembler.select("features")
 
+    if only_numeric:
+        data = data.select(numeric_cols)
+        data = VectorAssembler(inputCols=numeric_cols, outputCol="features").transform(data)
+
+    data_features = data.select("features")
     # Kmeans model
     kmeans_model = KMeans(featuresCol="features", k=10, maxIter=100, seed=1234)
     model = kmeans_model.fit(data_features)
@@ -21,8 +23,17 @@ def kmeans_clustering(data):
     centers = model.clusterCenters()
     centers = [center.tolist() for center in centers]
 
+    print "Computing distances"
     feature_vectors = data.rdd.map(anomaly.row_to_list)
     min_distances = feature_vectors.map(lambda x: anomaly.min_dist_to_centroid(x, centers))
     min_distances_list = min_distances.collect()  # list of values
-    #print len(min_distances_list)
-    print min_distances_list  # 4263049 vzdialenosti. Najvacsie su outlier
+    #print len(min_distances_list)  # 4263049 vzdialenosti.
+    #print max(min_distances_list)  # Najvacsie su outlier
+
+    print "Creating pandas DF"
+    data = data.toPandas()
+    print "Adding column to DF"
+    data["distances"] = min_distances_list
+    print "Finding largest distances"
+    largest = data.nlargest(10, ['distances'])
+    print largest.to_string()
