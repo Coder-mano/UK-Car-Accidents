@@ -11,7 +11,7 @@ if __name__ == "__main__":
     start = time.time()
     spark = SparkSession.builder.appName("TSVD").getOrCreate()
     data = prepare_data.loadData(spark)
-    data = data.sample(False, 0.2) #run Forrest run! 400s...
+    data = data.sample(False, 0.02) #run Forrest run! 400s...
     #data, indexedData = prepare_data.preprocess(data, indexed=False)
 
     data, indexedData = prepare_data.preprocess(data)
@@ -39,10 +39,10 @@ if __name__ == "__main__":
     training_data, testing_data = vector_data.randomSplit([0.8, 0.2], seed=1234)
 
     classification.decisionTree(training_data,testing_data)
-    #classification.supportVectorMachine(training_data,testing_data)
-    #classification.naiveBayes(training_data,testing_data)
-    #classification.randomForrest(training_data,testing_data)
-    #classification.gradientBoostedTrees(training_data,testing_data)
+    classification.supportVectorMachine(training_data,testing_data)
+    classification.randomForrest(training_data,testing_data)
+    classification.gradientBoostedTrees(training_data,testing_data)
+    classification.naiveBayes(training_data,testing_data)
 
     end = time.time()
     print end - start

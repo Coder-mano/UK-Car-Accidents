@@ -95,7 +95,7 @@ def preprocess(data, indexed=True):
         indexedData = getIndexedDataFrame(data, nominalColumns)
 
         indexedData = indexedData.drop('Accident_Severity', 'Accident_Index','Casualty_Reference','Vehicle_Reference_Casualty',
-                                       'Vehicle_Reference','1st_Road_Number')
+                                       'Vehicle_Reference','1st_Road_Number','Location_Northing_OSGR','Location_Easting_OSGR','Latitude','Longitude')
         return data, indexedData
     else:
 

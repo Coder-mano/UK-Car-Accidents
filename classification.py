@@ -1,5 +1,7 @@
-from pyspark.ml.classification import DecisionTreeClassifier, DecisionTreeClassificationModel
+from pyspark.ml.classification import DecisionTreeClassifier, DecisionTreeClassificationModel, RandomForestClassifier, NaiveBayes, GBTClassifier
 from pyspark.ml.classification import LinearSVC
+from pyspark.sql.functions import isnan, count, avg, mean
+from pyspark.sql import Row
 
 
 def decisionTree(training_data, testing_data):
@@ -14,8 +16,7 @@ def decisionTree(training_data, testing_data):
     tree_model = tree_classifier.fit(training_data)
     predictions = tree_model.transform(testing_data)
 
-    predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
-    classificationTest(predictions,testing_data)
+    classificationTest(predictions,testing_data,"Decision Tree")
 
 def supportVectorMachine(training_data, testing_data):
 
@@ -26,49 +27,60 @@ def supportVectorMachine(training_data, testing_data):
     svm_model = svm_classifier.fit(training_data)
     predictions = svm_model.transform(testing_data)
 
-    predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
+    classificationTest(predictions,testing_data,"Support Vector Machine")
 
 
 def naiveBayes(training_data, testing_data):
 
-    nb_classifier = LinearSVC(
+    nb_classifier = NaiveBayes(
         featuresCol="features",
         labelCol="Accident_Severity_Binary")
 
     nb_model = nb_classifier.fit(training_data)
     predictions = nb_model.transform(testing_data)
 
-    predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
+    classificationTest(predictions,testing_data,"Naive Bayes")
 
 
 def randomForrest(training_data, testing_data):
 
     rf_classifier = RandomForestClassifier(
         featuresCol="features",
+        maxBins=420,
         labelCol="Accident_Severity_Binary")
 
     rf_model = rf_classifier.fit(training_data)
     predictions = rf_model.transform(testing_data)
 
-    predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
+    classificationTest(predictions,testing_data,"Random Forrest")
 
 
 def gradientBoostedTrees(training_data, testing_data):
 
     gbtc_classifier = GBTClassifier(
         featuresCol="features",
+        maxBins=420,
         labelCol="Accident_Severity_Binary")
 
     gbtc_model = gbtc_classifier.fit(training_data)
     predictions = gbtc_model.transform(testing_data)
 
-    predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
+    classificationTest(predictions,testing_data,"Gradient Boosted Trees")
 
 
 
 
-def classificationTest(predictions, testing_data):
-     test_error = predictions.filter(predictions["prediction"] != predictions["Accident_Severity_Binary"])
-     print 'Counted' #OOF?
-     test_error = test_error.count() / float(testing_data.count())
+def classificationTest(predictions, testing_data, model):
+
+     print "\n" + model
+     predictions.stat.crosstab("prediction", "Accident_Severity_Binary").show()
+     matrix = predictions.stat.crosstab("prediction", "Accident_Severity_Binary").collect()
+
+     TP = matrix[1]['0.0']
+     FP = matrix[1]['1.0']
+     TN = matrix[0]['1.0']
+     FN = matrix[0]['0.0']
+
+     test_error = (FP + FN) / float(testing_data.count())
+
      print "Testing error: {0:.4f}".format(test_error)
