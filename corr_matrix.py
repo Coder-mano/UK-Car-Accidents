@@ -1,6 +1,6 @@
 from pyspark.ml.feature import VectorAssembler
 from pyspark.ml.stat import Correlation
-import pandas as pd
+#import pandas as pd
 
 
 def correlations(data, only_numeric=True):
@@ -17,8 +17,11 @@ def correlations(data, only_numeric=True):
 
     # Process Data
     matrix = Correlation.corr(data, "features")
-
-    # Display Corr Matrix
+    matrix.show()
     result = matrix.collect()[0]["pearson({})".format("features")].values
-    cor_matrix = pd.DataFrame(result.reshape(-1, len(col_names)), columns=col_names, index=col_names)
-    print cor_matrix.to_string()
+    print result
+    # Display Corr Matrix - pretty print
+    # result = matrix.collect()[0]["pearson({})".format("features")].values
+    # cor_matrix = pd.DataFrame(result.reshape(-1, len(col_names)), columns=col_names, index=col_names)
+    # print cor_matrix.to_string()
+    # cor_matrix.to_excel(r'corr.xlsx', sheet_name='Your sheet name', index=False)  # save to excel

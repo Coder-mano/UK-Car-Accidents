@@ -7,6 +7,8 @@ from pyspark.ml.feature import VectorAssembler
 #import visualization
 import clustering
 import statistics
+from pyspark.sql.types import FloatType
+import pyspark.sql.functions as sf
 
 if __name__ == "__main__":
 
@@ -18,9 +20,8 @@ if __name__ == "__main__":
     data, indexedData = prepare_data.preprocess(data)
 
     # Visualization (sroti dlho)
-    # data = prepare_data.preprocess(data, indexed=False)
-    # visualization.make_barcharts(data, save_pdf=True)
-    # visualization.make_histogram(data)
+    # visualization.make_barcharts(data, save_pdf=False)
+    # visualization.make_histogram(data) # needs module, uncomment function in visualization.py
 
     # Basic Statistics
     statistics.basic_statistics(data, False)
@@ -36,7 +37,14 @@ if __name__ == "__main__":
     corr_matrix.correlations(vector_data_corr, only_numeric=False)
 
     # Clustering
-    clustering.kmeans_clustering(vector_data_corr, only_numeric=False)
+    outliers_list = clustering.kmeans_clustering(vector_data_corr, only_numeric=False)
+    # Add distances as new column
+    temp_df = spark.createDataFrame(outliers_list, FloatType())
+    temp_df = temp_df.withColumn("monotonically_increasing_id", sf.monotonically_increasing_id())
+    temp_df = temp_df.withColumnRenamed("value", "distance")
+    vector_data_corr = vector_data_corr.withColumn("monotonically_increasing_id", sf.monotonically_increasing_id())
+    temp_df = vector_data_corr.join(temp_df, "monotonically_increasing_id").drop("monotonically_increasing_id")
+    temp_df.orderBy(temp_df.distance.desc()).show()
 
     # Vector data preparation
     col_names.remove('Accident_Severity_Binary')

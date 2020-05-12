@@ -1,8 +1,26 @@
 from pyspark.ml.clustering import KMeans
 from pyspark.ml.feature import VectorAssembler
-import anomaly
-
+import numpy as np
 numeric_cols = ["Number_of_Vehicles", "Number_of_Casualties", "Speed_limit", "Age_of_Driver"]
+
+
+def euclidean_distance(point_vector, centers):
+    distances = []
+    for center_point in centers:
+        pv = np.array(point_vector)
+        cp = np.array(center_point)
+        dist = np.linalg.norm(pv - cp)
+        distances.append(dist)
+    min_distance = min(distances)  # select minimal distance
+    return min_distance
+
+
+def row_to_list(row):
+    columns = row.__fields__
+    list_format = []
+    for column in columns:
+        list_format.append(row[column])
+    return list_format
 
 
 def kmeans_clustering(data, only_numeric=False):
@@ -24,16 +42,17 @@ def kmeans_clustering(data, only_numeric=False):
     centers = [center.tolist() for center in centers]
 
     print "Computing distances"
-    feature_vectors = data.rdd.map(anomaly.row_to_list)
-    min_distances = feature_vectors.map(lambda x: anomaly.min_dist_to_centroid(x, centers))
-    min_distances_list = min_distances.collect()  # list of values
-    #print len(min_distances_list)  # 4263049 vzdialenosti.
-    #print max(min_distances_list)  # Najvacsie su outlier
+    feature_vectors = data_features.rdd.map(row_to_list)
+    distances = feature_vectors.map(lambda x: euclidean_distance(x, centers))
+    distances_list = distances.collect()  # list of values
+    converted_list = [float(elm) for elm in distances_list]
+    return converted_list
 
-    print "Creating pandas DF"
-    data = data.toPandas()
-    print "Adding column to DF"
-    data["distances"] = min_distances_list
-    print "Finding largest distances"
-    largest = data.nlargest(10, ['distances'])
-    print largest.to_string()
+    # #  pretty print
+    # print "Creating pandas DF"
+    # data = data.toPandas()
+    # print "Adding column to DF"
+    # data["distances"] = min_distances_list
+    # print "Finding largest distances"
+    # largest = data.nlargest(10, ['distances'])
+    # print largest.to_string()

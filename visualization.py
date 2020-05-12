@@ -1,5 +1,5 @@
 import prepare_data
-from pyspark_dist_explore import hist
+#from pyspark_dist_explore import hist  # module for histograms
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 import pyspark.sql.functions as sf
@@ -45,43 +45,44 @@ def make_barcharts(data, save_pdf=False):
         print "Bar plots finished -> PDF saved as bar_plot.pdf"
 
 
-def make_histogram(data):
-    print "Selecting data for histograms"
-    data = data.select(["Age_of_Driver", "Accident_Severity", "Sex_of_Driver"])
-    # Sex_of_Driver & Age_of_Driver
-    print "Filtering data - Sex_of_Driver"
-    male = data.filter(sf.col("Sex_of_Driver") == "1").select(sf.col("Age_of_Driver").alias("Male"))
-    female = data.filter(sf.col("Sex_of_Driver") == "2").select(sf.col("Age_of_Driver").alias("Female"))
-    fig, axes = plt.subplots()
-    fig.set_size_inches(10, 10)
-    hist(axes, [male, female], bins=20, color=["red", "tan"])
-    axes.set_title("Compare Genders")
-    axes.legend()
-    axes.set_xlabel("Age")
-    plt.savefig("plots/genders.png", bbox_inches="tight")
-    plt.close()
-    # Accident_Severity & Age_of_Driver
-    print "Filtering data - Accident_Severity"
-    fatal = data.filter(sf.col("Accident_Severity") == "1").select(sf.col("Age_of_Driver").alias("Fatal"))
-    serious = data.filter(sf.col("Accident_Severity") == "2").select(sf.col("Age_of_Driver").alias("Serious"))
-    slight = data.filter(sf.col("Accident_Severity") == "3").select(sf.col("Age_of_Driver").alias("Slight"))
-    fig, axes = plt.subplots()
-    fig.set_size_inches(10, 10)
-    hist(axes, [fatal, serious, slight], bins=20, color=["red", "tan", "green"])
-    axes.set_title("Compare Severity")
-    axes.legend()
-    axes.set_xlabel("Age")
-    plt.savefig("plots/severity.png", bbox_inches="tight")
-    plt.close()
-    # Accident_Severity(Fatal) & Age_of_driver
-    fig, axes = plt.subplots()
-    fig.set_size_inches(10, 10)
-    hist(axes, fatal, bins=20, color="red")
-    axes.set_title("Severity=Fatal")
-    axes.legend()
-    axes.set_xlabel("Age")
-    plt.savefig("plots/severity-fatal.png", bbox_inches="tight")
-    plt.close()
+# Histograms using 3rd party module
+# def make_histogram(data):
+#     print "Selecting data for histograms"
+#     data = data.select(["Age_of_Driver", "Accident_Severity", "Sex_of_Driver"])
+#     # Sex_of_Driver & Age_of_Driver
+#     print "Filtering data - Sex_of_Driver"
+#     male = data.filter(sf.col("Sex_of_Driver") == "1").select(sf.col("Age_of_Driver").alias("Male"))
+#     female = data.filter(sf.col("Sex_of_Driver") == "2").select(sf.col("Age_of_Driver").alias("Female"))
+#     fig, axes = plt.subplots()
+#     fig.set_size_inches(10, 10)
+#     hist(axes, [male, female], bins=20, color=["red", "tan"])
+#     axes.set_title("Compare Genders")
+#     axes.legend()
+#     axes.set_xlabel("Age")
+#     plt.savefig("plots/genders.png", bbox_inches="tight")
+#     plt.close()
+#     # Accident_Severity & Age_of_Driver
+#     print "Filtering data - Accident_Severity"
+#     fatal = data.filter(sf.col("Accident_Severity") == "1").select(sf.col("Age_of_Driver").alias("Fatal"))
+#     serious = data.filter(sf.col("Accident_Severity") == "2").select(sf.col("Age_of_Driver").alias("Serious"))
+#     slight = data.filter(sf.col("Accident_Severity") == "3").select(sf.col("Age_of_Driver").alias("Slight"))
+#     fig, axes = plt.subplots()
+#     fig.set_size_inches(10, 10)
+#     hist(axes, [fatal, serious, slight], bins=20, color=["red", "tan", "green"])
+#     axes.set_title("Compare Severity")
+#     axes.legend()
+#     axes.set_xlabel("Age")
+#     plt.savefig("plots/severity.png", bbox_inches="tight")
+#     plt.close()
+#     # Accident_Severity(Fatal) & Age_of_driver
+#     fig, axes = plt.subplots()
+#     fig.set_size_inches(10, 10)
+#     hist(axes, fatal, bins=20, color="red")
+#     axes.set_title("Severity=Fatal")
+#     axes.legend()
+#     axes.set_xlabel("Age")
+#     plt.savefig("plots/severity-fatal.png", bbox_inches="tight")
+#     plt.close()
 
 # 4fun
 # def terminal_friendly_histogram(data):
