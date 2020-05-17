@@ -1,9 +1,14 @@
 import prepare_data
-#from pyspark_dist_explore import hist  # module for histograms
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import pyspark.sql.functions as sf
+
+# PDF saving modules
+#import matplotlib.pyplot as plt
+#from matplotlib.backends.backend_pdf import PdfPages
 #import plotille
+
+# Histograms module
+#from pyspark_dist_explore import hist  # module for histograms
+
 
 colors = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c', '#fabebe',
           '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1', '#000075', '#808080',
@@ -30,6 +35,7 @@ def make_barcharts(data, save_pdf=False):
             df = data.groupBy(atr).count()
             df.show()
     else:
+        # Needs matplotlib & pandas modules for proper working
         print "Saving pdf as bar_plot.pdf"
         with PdfPages("plots/bar_plot.pdf") as pdf:
             for atr in attributes:
@@ -45,44 +51,44 @@ def make_barcharts(data, save_pdf=False):
         print "Bar plots finished -> PDF saved as bar_plot.pdf"
 
 
-# Histograms using 3rd party module
-# def make_histogram(data):
-#     print "Selecting data for histograms"
-#     data = data.select(["Age_of_Driver", "Accident_Severity", "Sex_of_Driver"])
-#     # Sex_of_Driver & Age_of_Driver
-#     print "Filtering data - Sex_of_Driver"
-#     male = data.filter(sf.col("Sex_of_Driver") == "1").select(sf.col("Age_of_Driver").alias("Male"))
-#     female = data.filter(sf.col("Sex_of_Driver") == "2").select(sf.col("Age_of_Driver").alias("Female"))
-#     fig, axes = plt.subplots()
-#     fig.set_size_inches(10, 10)
-#     hist(axes, [male, female], bins=20, color=["red", "tan"])
-#     axes.set_title("Compare Genders")
-#     axes.legend()
-#     axes.set_xlabel("Age")
-#     plt.savefig("plots/genders.png", bbox_inches="tight")
-#     plt.close()
-#     # Accident_Severity & Age_of_Driver
-#     print "Filtering data - Accident_Severity"
-#     fatal = data.filter(sf.col("Accident_Severity") == "1").select(sf.col("Age_of_Driver").alias("Fatal"))
-#     serious = data.filter(sf.col("Accident_Severity") == "2").select(sf.col("Age_of_Driver").alias("Serious"))
-#     slight = data.filter(sf.col("Accident_Severity") == "3").select(sf.col("Age_of_Driver").alias("Slight"))
-#     fig, axes = plt.subplots()
-#     fig.set_size_inches(10, 10)
-#     hist(axes, [fatal, serious, slight], bins=20, color=["red", "tan", "green"])
-#     axes.set_title("Compare Severity")
-#     axes.legend()
-#     axes.set_xlabel("Age")
-#     plt.savefig("plots/severity.png", bbox_inches="tight")
-#     plt.close()
-#     # Accident_Severity(Fatal) & Age_of_driver
-#     fig, axes = plt.subplots()
-#     fig.set_size_inches(10, 10)
-#     hist(axes, fatal, bins=20, color="red")
-#     axes.set_title("Severity=Fatal")
-#     axes.legend()
-#     axes.set_xlabel("Age")
-#     plt.savefig("plots/severity-fatal.png", bbox_inches="tight")
-#     plt.close()
+# Histograms using 3rd party module -> pyspark_dist_explore
+def make_histogram(data):
+     print "Selecting data for histograms"
+     data = data.select(["Age_of_Driver", "Accident_Severity", "Sex_of_Driver"])
+     # Sex_of_Driver & Age_of_Driver
+     print "Filtering data - Sex_of_Driver"
+     male = data.filter(sf.col("Sex_of_Driver") == "1").select(sf.col("Age_of_Driver").alias("Male"))
+     female = data.filter(sf.col("Sex_of_Driver") == "2").select(sf.col("Age_of_Driver").alias("Female"))
+     fig, axes = plt.subplots()
+     fig.set_size_inches(10, 10)
+     hist(axes, [male, female], bins=20, color=["red", "tan"])
+     axes.set_title("Compare Genders")
+     axes.legend()
+     axes.set_xlabel("Age")
+     plt.savefig("plots/genders.png", bbox_inches="tight")
+     plt.close()
+     # Accident_Severity & Age_of_Driver
+     print "Filtering data - Accident_Severity"
+     fatal = data.filter(sf.col("Accident_Severity") == "1").select(sf.col("Age_of_Driver").alias("Fatal"))
+     serious = data.filter(sf.col("Accident_Severity") == "2").select(sf.col("Age_of_Driver").alias("Serious"))
+     slight = data.filter(sf.col("Accident_Severity") == "3").select(sf.col("Age_of_Driver").alias("Slight"))
+     fig, axes = plt.subplots()
+     fig.set_size_inches(10, 10)
+     hist(axes, [fatal, serious, slight], bins=20, color=["red", "tan", "green"])
+     axes.set_title("Compare Severity")
+     axes.legend()
+     axes.set_xlabel("Age")
+     plt.savefig("plots/severity.png", bbox_inches="tight")
+     plt.close()
+     # Accident_Severity(Fatal) & Age_of_driver
+     fig, axes = plt.subplots()
+     fig.set_size_inches(10, 10)
+     hist(axes, fatal, bins=20, color="red")
+     axes.set_title("Severity=Fatal")
+     axes.legend()
+     axes.set_xlabel("Age")
+     plt.savefig("plots/severity-fatal.png", bbox_inches="tight")
+     plt.close()
 
 # 4fun
 # def terminal_friendly_histogram(data):

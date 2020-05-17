@@ -6,8 +6,8 @@ from pyspark.ml.feature import StringIndexer
 
 
 def loadData(spark):
-    # CSV loading
 
+    # CSV loading & Join
     df_accidents = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Accidents.csv")
     df_casualties = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Casualties.csv")
     df_vehicles = spark.read.format("csv").option("header", "true").option("inferSchema", "true").load("../raw_data/Vehicles.csv")
@@ -21,38 +21,40 @@ def loadData(spark):
 
 
 def preprocess(data):
-    # time & date correction
+    # Time & Date correction
     data = data.withColumn("Date", sf.to_date("Date", format="dd/MM/yyyy"))  # string to date
     data = data.withColumn("Date", sf.concat(sf.col('Date'), sf.lit(' '), sf.col('Time')))  # concat
     data = data.withColumn("Date", sf.unix_timestamp("Date", format="yyyy-MM-dd HH:mm"))
     data = data.drop("Time")
 
-    # missing data replace
+    # Missing data replace
     col_names = data.schema.names
-    data = reduce(lambda df, x: df.withColumn(x, to_none(x)), col_names, data)  # replace "-1" with "None"
+    data = reduce(lambda df, x: df.withColumn(x, toNone(x)), col_names, data)  # replace "-1" with "None"
 
-    # null Location filtering
+    # Null Location Filtering
     data = data.filter(data["Location_Easting_OSGR"].isNotNull() & data["Location_Northing_OSGR"].isNotNull() & data[
         "Longitude"].isNotNull() & data["Latitude"].isNotNull())
 
-    # NA replacement in Junction_Control => where Junction_Location = 0
+    # NA replacement in Junction_Control => where Junction_Location = 0 + NA filtering for visualizations
     update_col = (when((col('Junction_Control').isNull()) & (col('Junction_Location') == 0), 0)
                   .otherwise(col('Junction_Control')))
     data = data.withColumn('Junction_Control', update_col)
+
     data = filterNa(data)
 
-    # Rename some cols
+    # Rename columns with special character
     data = data.withColumnRenamed("Local_Authority_(District)", "Local_Authority_District")
     data = data.withColumnRenamed("Local_Authority_(Highway)", "Local_Authority_Highway")
 
-    # other values replacement
+    # Missing values replacement
     meanAge = data.filter(data['Age_of_Driver'].isNotNull()).agg(avg(col('Age_of_Driver'))).first()[0]
     values = {'Weather_Conditions': 9,  'Sex_of_Driver': 3,
-              'Age_of_Driver': meanAge, 'Age_Band_of_Driver': age_band_count(meanAge),
+              'Age_of_Driver': meanAge, 'Age_Band_of_Driver': getAgeBand(meanAge),
               'Pedestrian_Location': 10, 'Pedestrian_Movement': 9, 'Pedestrian_Road_Maintenance_Worker': 2,
               'Junction_Control': 0}
     data = data.fillna(value=values)
 
+    # Convert numerical to nominal attributes
     nominalColumns = ['Police_Force', 'Day_of_Week', 'Local_Authority_District', 'Local_Authority_Highway',
                       '1st_Road_Class', 'Road_Type', 'Junction_Detail', 'Junction_Control',
                       'Pedestrian_Crossing-Human_Control',
@@ -72,17 +74,23 @@ def preprocess(data):
 
     data = toNominal(data, nominalColumns)
 
-    # reduce -> stratified sampling
-    fractions = {'1': 1, '2': 0.05, '3': 0.05}
+    # Reduce -> Stratified sampling
+    fractions = {'1': 1, '2': 0.02, '3': 0.02}
     data = data.sampleBy('Accident_Severity', fractions, seed=1234)
 
-    # main attr binarization
+    # Main attr Binarization
     data = data.withColumn("Accident_Severity_Binary", when(data["Accident_Severity"] == 1, 0).otherwise(1))
     nominalColumns.append("Accident_Severity_Binary")
+
+    # Prepare the data for Classification
     indexedData = getIndexedDataFrame(data, nominalColumns)
-    indexedData = indexedData.drop('Accident_Severity', 'Accident_Index','Casualty_Reference','Vehicle_Reference_Casualty',
-                                    'Vehicle_Reference','1st_Road_Number',
-                                   'Location_Northing_OSGR','Location_Easting_OSGR','Latitude','Longitude')
+
+    # Filter the data based on information gain and correlations
+    indexedData = indexedData.drop('Accident_Severity', 'Vehicle_Reference','Police_Force', 'Local_Authority_District','Junction_Location',
+                                   'Local_Authority_Highway', 'Accident_Index', 'Casualty_Reference','1st_Road_Class','Location_Easting_OSGR',
+                                   'Location_Northing_OSGR', 'Special_Conditions_at_Site', 'Car_Passenger', 'Date', 'Latitude','Longitude',
+                                   '1st_Road_Number', 'Pedestrian_Road_Maintenance_Worker', 'Urban_or_Rural_Area', 'Vehicle_Reference_Casualty',
+                                   'Casualty_Severity','Casualty_Class','Age_of_Driver')
     return data, indexedData
 
 
@@ -95,17 +103,6 @@ def getIndexedDataFrame(data, columns):
 
 
 def filterNa(data):
-    # Na row filtering
-    data = data.dropna(subset=['Location_Easting_OSGR', 'Location_Northing_OSGR', 'Longitude', 'Latitude',
-                               '1st_Road_Number', 'Junction_Detail', 'Pedestrian_Crossing-Human_Control',
-                               'Pedestrian_Crossing-Physical_Facilities', 'Road_Surface_Conditions',
-                               'Special_Conditions_at_Site', 'Carriageway_Hazards', 'Vehicle_Type',
-                               'Towing_and_Articulation',
-                               'Vehicle_Manoeuvre', 'Vehicle_Location-Restricted_Lane', 'Skidding_and_Overturning',
-                               'Hit_Object_in_Carriageway', 'Vehicle_Leaving_Carriageway',
-                               'Hit_Object_off_Carriageway', '1st_Point_of_Impact', 'Car_Passenger',
-                               'Bus_or_Coach_Passenger', 'Date', 'Junction_Location',
-                               'Did_Police_Officer_Attend_Scene_of_Accident'])
 
     # NA Columns deletion
     data = data.drop('2nd_Road_Number', '2nd_Road_Class',
@@ -114,6 +111,19 @@ def filterNa(data):
                      'Driver_Home_Area_Type',
                      'Sex_of_Casualty', 'Age_of_Casualty', 'Age_Band_of_Casualty', 'Casualty_Home_Area_Type',
                      'LSOA_of_Accident_Location', 'Journey_Purpose_of_Driver')
+
+    # Na rows filtering
+    data = data.dropna(subset=[
+        'Junction_Detail', 'Pedestrian_Crossing-Human_Control',
+        'Pedestrian_Crossing-Physical_Facilities', 'Road_Surface_Conditions',
+        'Special_Conditions_at_Site', 'Carriageway_Hazards', 'Vehicle_Type',
+        'Towing_and_Articulation',
+        'Vehicle_Manoeuvre', 'Vehicle_Location-Restricted_Lane', 'Skidding_and_Overturning',
+        'Hit_Object_in_Carriageway', 'Vehicle_Leaving_Carriageway',
+        'Hit_Object_off_Carriageway', '1st_Point_of_Impact', 'Car_Passenger',
+        'Bus_or_Coach_Passenger', 'Date', 'Junction_Location',
+        'Did_Police_Officer_Attend_Scene_of_Accident'])
+
     return data
 
 
@@ -125,7 +135,7 @@ def toNominal(data, columns):
     return data
 
 
-def age_band_count(age):
+def getAgeBand(age):
     if age < 6:
         a_band = 1
     elif 5 < age < 11:
@@ -151,7 +161,7 @@ def age_band_count(age):
     return a_band
 
 
-def to_none(col_name):
+def toNone(col_name):
     return when(col(col_name) != "-1", col(col_name)).otherwise(None)
 
 

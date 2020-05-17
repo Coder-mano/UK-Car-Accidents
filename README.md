@@ -208,7 +208,7 @@ only showing top 20 rows
 ```
 
 ##  ✍️ Authors
-- [Tomáš Adam @coder-mano](https://github.com/Coder-mano) 
+- [Tomáš Adam](https://github.com/Coder-mano) 
 - [Lucia Szalovnová](https://github.com/do-re-mi-fa)
 - [Martin Harman](https://github.com/matinus99)
 -  Patrik Masrna 
