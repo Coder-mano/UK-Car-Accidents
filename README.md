@@ -2,7 +2,7 @@
 
 This repository represents the solution to the assignment. The primary goal was to describe the dataset, and create a classification of fatal accidents by various machine learning algorithms using [UK Car Accidents 2005-2015](https://www.kaggle.com/silicon99/dft-accident-data) dataset.
 
-## Numeric Statistics:
+## [Numeric Statistics](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/statistics.py#L10)
 ```go
 +-------+-----------------+------------------+--------------------+------------------+
 |summary|    Age_of_Driver|Number_of_Vehicles|Number_of_Casualties|       Speed_limit|
@@ -21,7 +21,8 @@ Number_of_Vehicles - Number_of_Casualties 5.89
 Number_of_Vehicles - Speed_limit 9.48
 Number_of_Casualties - Speed_limit 16.17
 ```
-## Information Gain Ratio
+
+## [Information Gain Ratio](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/statistics.py#L63)
 ```go
 +-------------------------------------------+----------------------+
 |Attributes                                 |Information Gain Ratio|
@@ -59,7 +60,7 @@ Number_of_Casualties - Speed_limit 16.17
 +-------------------------------------------+----------------------+
 ```
 
-## Correlations
+## [Correlations](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/statistics.py#L19)
 ```go
 +-------------------------------------------+------------------+--------------------+-----------+-----------+---------+---------------+----------------+---------------------------------+---------------------------------------+----------------+-----------------------+-------------------+-------------------------------------------+------------+-----------------------+-----------------+--------------------------------+------------------------+-------------------------+---------------------------+--------------------------+-------------------+-------------+-------------------+-------------------+----------------------+-------------+------------------+------------------+------------------------+
 |Correlations                               |Number_of_Vehicles|Number_of_Casualties|Speed_limit|Day_of_Week|Road_Type|Junction_Detail|Junction_Control|Pedestrian_Crossing-Human_Control|Pedestrian_Crossing-Physical_Facilities|Light_Conditions|Road_Surface_Conditions|Carriageway_Hazards|Did_Police_Officer_Attend_Scene_of_Accident|Vehicle_Type|Towing_and_Articulation|Vehicle_Manoeuvre|Vehicle_Location-Restricted_Lane|Skidding_and_Overturning|Hit_Object_in_Carriageway|Vehicle_Leaving_Carriageway|Hit_Object_off_Carriageway|1st_Point_of_Impact|Sex_of_Driver|Pedestrian_Location|Pedestrian_Movement|Bus_or_Coach_Passenger|Casualty_Type|Weather_Conditions|Age_Band_of_Driver|Accident_Severity_Binary|
@@ -98,7 +99,8 @@ Number_of_Casualties - Speed_limit 16.17
 ```
 
 # Classification
-## Decision Tree
+
+## [Decision Tree](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/classification.py#L7)
 ```go
 +-----------------------------------+-----+-----+
 |prediction_Accident_Severity_Binary|  0.0|  1.0|
@@ -114,7 +116,7 @@ Testing error: 0.1771
 AUC: Area Under the ROC Curve: 0.8353
 ```
 
-## Random Forrest
+## [Random Forrest](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/classification.py#L23)
 ```go
 +-----------------------------------+-----+-----+
 |prediction_Accident_Severity_Binary|  0.0|  1.0|
@@ -130,7 +132,7 @@ Testing error: 0.1857
 AUC: Area Under the ROC Curve: 0.8952
 ```
 
-## Gradient Boosted Trees
+## [Gradient Boosted Trees](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/classification.py#L67)
 ```go
 +-----------------------------------+-----+-----+
 |prediction_Accident_Severity_Binary|  0.0|  1.0|
@@ -146,7 +148,8 @@ Testing error: 0.1743
 AUC: Area Under the ROC Curve: 0.9046
 ```
 
-## Naive Bayes
+## [Naive Bayes](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/classification.py#L53)
+
 ```go
 +-----------------------------------+-----+-----+
 |prediction_Accident_Severity_Binary|  0.0|  1.0|
@@ -162,7 +165,8 @@ Testing error: 0.2868
 AUC: Area Under the ROC Curve: 0.4480
 ```
 
-## Support Vector Machine
+## [Support Vector Machine](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/classification.py#L40)
+
 ```go
 +-----------------------------------+-----+-----+
 |prediction_Accident_Severity_Binary|  0.0|  1.0|
@@ -178,7 +182,9 @@ Testing error: 0.2563
 AUC: Area Under the ROC Curve: 0.8220
 ```
 
-## Outliers
+
+## [Outliers](https://github.com/Coder-mano/UK-Car-Accidents/blob/master/clustering.py#L2)
+
 ```go
 +------------------+--------------------+-----------+-----------+---------+---------------+----------------+---------------------------------+---------------------------------------+----------------+-----------------------+-------------------+-------------------------------------------+------------+-----------------------+-----------------+--------------------------------+------------------------+-------------------------+---------------------------+--------------------------+-------------------+-------------+-------------------+-------------------+----------------------+-------------+------------------+------------------+------------------------+--------------------+---------+
 |Number_of_Vehicles|Number_of_Casualties|Speed_limit|Day_of_Week|Road_Type|Junction_Detail|Junction_Control|Pedestrian_Crossing-Human_Control|Pedestrian_Crossing-Physical_Facilities|Light_Conditions|Road_Surface_Conditions|Carriageway_Hazards|Did_Police_Officer_Attend_Scene_of_Accident|Vehicle_Type|Towing_and_Articulation|Vehicle_Manoeuvre|Vehicle_Location-Restricted_Lane|Skidding_and_Overturning|Hit_Object_in_Carriageway|Vehicle_Leaving_Carriageway|Hit_Object_off_Carriageway|1st_Point_of_Impact|Sex_of_Driver|Pedestrian_Location|Pedestrian_Movement|Bus_or_Coach_Passenger|Casualty_Type|Weather_Conditions|Age_Band_of_Driver|Accident_Severity_Binary|            features| distance|
